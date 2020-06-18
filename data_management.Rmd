@@ -1,0 +1,32 @@
+---
+title: "CO~2~ emissions over time"
+author: "Madlen Wilmes"
+subtitle: An introduction to data management in R
+output:  html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+        echo = TRUE,
+        message = TRUE,
+        error = TRUE,
+        warning = TRUE,
+        highlight = TRUE,
+        prompt = FALSE
+        )
+```
+
+<!-- wp:paragraph -->
+When learners have their first exposure to R, they are often highly focused on acquiring coding skills. However, it is also the perfect time to introduce data management approaches that ensure that your data analysis practice is consistent, reproducible, flexible, and scalable.
+
+This post serves as an introduction to R, with a special focus on best practices in data management, and the data analysis workflow.
+<!-- /wp:paragraph -->
+
+<!-- wp:more -->
+<!--more-->
+<!-- /wp:more -->
+
+<!-- wp:paragraph -->
+The typical data analytics workflow in R starts with importing your data, wrangling and transforming it into a tidy shape, explore the data using visualizations, analyze/model, and eventually communicate the results. Data visualization and modeleling is a repetitive process as one dives deeper into the analysis, as shown in Figure 1 by [Garrett Grolemund and Hadley Wickham](https://r4ds.had.co.nz/introduction.html).
+<!-- /wp:paragraph -->
