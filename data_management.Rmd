@@ -1,7 +1,6 @@
 ---
-title: "CO~2~ emissions over time"
+title: "A primer on data management in R"
 author: "Madlen Wilmes"
-subtitle: An introduction to data management in R
 output:  html_document
 ---
 
@@ -18,9 +17,9 @@ knitr::opts_chunk$set(
 ```
 
 <!-- wp:paragraph -->
-When learners have their first exposure to R, they are often highly focused on acquiring coding skills. However, it is also the perfect time to introduce data management approaches that ensure that your data analysis practice is consistent, reproducible, flexible, and scalable.
+When learners have their first exposure to R, they are often solely focused on acquiring coding skills. However, it is also the perfect time to introduce data management approaches that ensure that your data analysis practice is consistent, reproducible, flexible, and scalable.
 
-This post serves as an introduction to R, with a special focus on best practices in data management, and the data analysis workflow.
+This post serves as an introduction to R, with a special focus on best practices in data management, and the data analysis workflow. Our goal is to analyze $CO_2$ emissions of many countries over time and make sure that we can easily repeat and scale the analysis when the [World Bank](https://data.worldbank.org/indicator/EN.ATM.CO2E.PC) adds additional data.
 <!-- /wp:paragraph -->
 
 <!-- wp:more -->
@@ -28,5 +27,380 @@ This post serves as an introduction to R, with a special focus on best practices
 <!-- /wp:more -->
 
 <!-- wp:paragraph -->
-The typical data analytics workflow in R starts with importing your data, wrangling and transforming it into a tidy shape, explore the data using visualizations, analyze/model, and eventually communicate the results. Data visualization and modeleling is a repetitive process as one dives deeper into the analysis, as shown in Figure 1 by [Garrett Grolemund and Hadley Wickham](https://r4ds.had.co.nz/introduction.html).
+If you would like to work along, please retrieve the data on CO2 emissions on the website of the [World Bank](https://data.worldbank.org/indicator/EN.ATM.CO2E.PC). Click `csv` on the right-hand side to download a folder that includes the data.
 <!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+So how do we go about analyzing CO_2 emissions over the years?
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+The typical data analytics workflow in R is shown in the figure below. It starts with importing your data, wrangling and transforming it into a tidy shape, explore the data using visualizations, analyze/model, and eventually communicate the results. Data visualization and modeleling is a repetitive process as one dives deeper into the analysis.
+<!-- /wp:paragraph -->
+
+![A typical analytics workflow. Image by [Garrett Grolemund and Hadley Wickham](https://r4ds.had.co.nz/introduction.html).](./analytics_worklow_in_R.png)
+
+
+<!-- wp:paragraph -->
+The above workflow implies that data import is the first step of analysis. Not so quick!
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+Ask yourself these questions first:
+
+- Do you know what the data is? Is it structured? Comma-separated?
+- Do I have a backup of the original data?
+- Do I need to repeat the analysis?
+- Do multiple people need to access the (raw) data?
+<!-- /wp:paragraph -->
+
+<!-- wp:getwid/advanced-heading {"titleTag":"h4"} -->
+Know your data, before importing
+<!-- /wp:getwid/advanced-heading -->
+
+<!-- wp:paragraph -->
+The general data analytics workflow above indicates that the first action is to import your data. There's actually one step ahead of it: determine what your data is; what it looks like. Is the data comma-separated and well structured? How are strings, and missing data encoded? This knowledge makes it easier to write your data import statement. If it is a small text file (such as `csv`), you can open it in a text editor or Excel. Alternatively, use your terminal to inspect the first few lines, using the `head` command.
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+Inspecting our `csv` file from the [World Bank](https://data.worldbank.org/indicator/EN.ATM.CO2E.PC) reveals an interesting organisation. The first few lines contain meta data, verbally describing the content of the file, and date of the last update. Each row reports data for one country. The countries are identified with a name and abbreviation. Column three and four report the measure, unit, and some sort of world-bank database identifier. The additional columns report the CO2 emmission per year.
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+Note that there are lots of empty cells, when no data is available. Strangely, there are several columns for the most recent years that are entirely empty. You might feel your fingers itching to trim the data right away. For example, delete the columns of years, for which we do not have data. Maybe delete the meta-information above the data and certainly the two columns that have no relevance for our analysis. Hold your horses!
+<!-- /wp:paragraph -->
+
+
+<!-- wp:getwid/advanced-heading {"titleTag":"h4"} -->
+Back it up
+<!-- /wp:getwid/advanced-heading -->
+
+<!-- wp:paragraph -->
+Before attempting any analysis, make sure you have a copy of the data in a place that is physically removed from the data that you work on If we accidentally change the file, we can restore from that backup. In our case, we could simply download the file again but that might not be the case of your precious sensor data that you collected over the last three months. Back up before you move on!
+<!-- /wp:paragraph -->
+
+<!-- wp:getwid/advanced-heading {"titleTag":"h4"} -->
+Leave raw data intact
+<!-- /wp:getwid/advanced-heading -->
+
+<!-- wp:paragraph -->
+Now we can trim the data? Nope. Avoid changing the raw data in any way, unless you can be sure that your priorities never change and you really can throw some data out (to save disk space).
+<!-- /wp:paragraph -->
+
+<!-- wp:getwid/advanced-heading {"titleTag":"h4"} -->
+Change data only programmatically
+<!-- /wp:getwid/advanced-heading -->
+
+<!-- wp:paragraph -->
+If you decide to change some aspect of the data, do so programatically, never by hand. If you later find your changes undesirable, you might be able to revert the change if you used a script to consistently modify some aspect of the data. 
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+Human errors, however, are not systematic. So once you closed your program (i.e., cannot "undo") you will with near certainly not be able to revert changes that you manually copied and pasted here and there.
+<!-- wp:paragraph -->
+
+<!-- wp:paragraph -->
+Here is another advantage of writing a script to change data: it is repeatable, transferrable, shareable, and scaleable. Yes, sometimes it is quicker to do something by hand but can you be 100% sure that you will only have to do the change once? Often, data is updated and the time that you took initially to write the script will be much less than manually repeating everything (and inadvertently including errors).
+<!-- /wp:paragraph -->
+
+
+<!-- wp:getwid/advanced-heading {"titleTag":"h4"} -->
+Installing R and RStudio
+<!-- /wp:getwid/advanced-heading -->
+
+<!-- wp:paragraph -->
+This tutorial assumes that you have R and RStudio already installed. If not, follow [these directions](https://rstudio.com/products/rstudio/download/).
+<!-- /wp:paragraph -->
+
+<!-- wp:getwid/advanced-heading {"titleTag":"h4"} -->
+Import the data
+<!-- /wp:getwid/advanced-heading -->
+
+<!-- wp:paragraph -->
+We are finally ready to import the data. The function `read.csv` imports the data, the nested function `file.choose()` opens a system dialoge that allows us to pick the file we want to open.
+<!-- /wp:paragraph -->
+```{r read.csv1, eval=TRUE}
+read.csv(file.choose())
+```
+<!-- wp:paragraph -->
+That lead us straight into an error message. Error messages may look scary when you are just getting started with R but they are there to help you! It tells us that there are more columns than column names. Oh, yeah, right. We have to skip the meta data information that we noticed when we visually inspected the file. 
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+We can skip lines by adding the option `skip` to our function call.
+```{r read.csv2, eval=FALSE}
+read.csv(file.choose(), skip = 4)
+```
+<!-- wp:paragraph -->
+
+
+<!-- wp:paragraph -->
+Nice, we succesfully read the data into R. What's more, R even took care of all those empty cells that indicated missing data and properly placed "NA" values. Very nice. But wait, what's that? There are Xs in front of the header names of our years.
+<!-- /wp:paragraph -->
+
+
+<!-- wp:paragraph -->
+Next pro tip: Using Google isn't cheating, it's smart! When you just start out, formulating an effective query might be a challenge in itself but practice makes us better. A useful query here is 'R X in front of column names.' That leads us to a stackoverflow post that suggest using `check.names = FALSE`. This option prevents R from sanitizing our variable names. It is better practice to have variable names that do not start with a number. However, we'll see later why we choose to switch off R's sanitation instead.
+<!-- /wp:paragraph -->
+
+```{r read.csv3, eval=FALSE}
+read.csv(file.choose(), skip = 4, check.names = FALSE)
+```
+
+<!-- wp:paragraph -->
+We succesfully imported the data to R but we have to asign it to a variable in order to do anything with it. To type the assignment operator `<-`, press `Alt + -` (Windows) or `Option + -` (Mac)
+<!-- /wp:paragraph -->
+
+
+```{r Assign variables, eval=FALSE}
+co2data <- read.csv(file.choose(), skip=4, check.names = FALSE)
+```
+
+<!-- wp:getwid/advanced-heading {"titleTag":"h4"} -->
+Choose a meaningful variable name.
+<!-- /wp:getwid/advanced-heading -->
+
+<!-- wp:paragraph -->
+What makes a variable name meaningful? When you understand the meaning of your own variable six months from today. If someone else can understand it, too. That's even more meaningful. A variable name `X` does not fulfill that criterium. Also be careful to not choose a variable name that is reserved for a function call (e.g., `length`).
+<!-- /wp:paragraph -->
+
+<!-- wp:getwid/advanced-heading {"titleTag":"h4"} -->
+Inspecting and selecting data in R
+<!-- /wp:getwid/advanced-heading -->
+
+<!-- wp:paragraph -->
+We can check the dimensions of a variable, see the first few lines, or receive meta information (e.g., what data type).
+<!-- /wp:paragraph -->
+
+```{r dim}
+# check dimensions
+dim(co2data)
+# inspect the first few lines
+head(co2data, 3)
+# receive meta information
+str(co2data)
+```
+
+<!-- wp:paragraph -->
+We can access specific columns in our data frame, using R's dollar notation.
+<!-- /wp:paragraph -->
+
+```{r dollar notation, , eval=FALSE}
+co2data$"Country Name"
+```
+
+<!-- wp:paragraph -->
+We can select a column and pass it to an analytical function.
+<!-- /wp:paragraph -->
+
+```{r max with NA}
+summary(co2data$"1970")
+```
+
+<!-- wp:paragraph -->
+Oh! We just did our first analysis! Let's calculate the average across all countries and years, then:
+<!-- /wp:paragraph -->
+
+```{r max data set}
+summary(co2data)
+```
+
+<!-- wp:paragraph -->
+That's not what we wanted. We received the summary of each individual column. How can calculate the summary of the entire data set? Remember that we were supposed to first "tidy" the data before analyzing it. So what does that even mean?
+<!-- /wp:paragraph -->
+
+
+## Load libraries
+- add functionality to R
+- also called packages
+- install a package when using for the first time (or update)
+
+```{r install packages, eval=FALSE}
+install.packages("tidyr")
+```
+
+install a library\
+if called on a package that is already installed, it may update
+
+- Load library whenever starting a new R session. 
+
+```{r load packages, results='hide', message = FALSE}
+library(tidyr) # data manipulation
+```
+- a `#` marks a comment (i.e., notes for yourself, not commands to R)
+
+
+## Tidy your data 
+
+What is tidy data?
+
+Goal: analyze emmission over years of the countries --> three variables
+
+- each variable must have its own column
+- each observation must have its own row
+- each value must have its own cell
+
+County     2018       2019
+--------   --------   --------
+Argentina   A         a
+USA         B         b
+Sudan       C         c 
+Japan       D         d
+--------  --------   --------
+
+County    Year       Value
+--------   --------   --------
+Argentina   2018      A
+Argentina   2019      a
+USA         2018      B
+USA         2019      b
+Sudan       2018      C
+Sudan       2019      c 
+Japan       2018      D
+Japan       2019      d
+--------  --------   --------
+
+
+
+## Our CO~2~ emission data is not tidy
+```{r not tidy, eval=FALSE}
+str(co2data)
+```
+- variable `year` is spread across multiple columns!
+
+## Tidy your data 
+
+- function `gather` brings a variable into one column that was spread across multiple columns
+- **what does <- mean?**
+```{r tidy data}
+co2data_long <- gather(co2data, 
+                       key = year,
+                       value = emission, 
+                       "1960":"2019")
+```
+
+```{r data in tidy form, results='hide'}
+str(co2data_long)
+```
+
+Check out other functions of the `tidyr` package: https://tidyr.tidyverse.org/reference/index.html
+
+*Transition:* There are two problems here: empty column and year is a character
+
+## Remove superfluous columns 
+
+```{r what does it look like now, results='hide'}
+head(co2data_long)
+```
+
+```{r load, results='hide', message=FALSE}
+library(dplyr)
+```
+
+Select and remove multiple columns.
+```{r remove multiple columns}
+# specify multiple columns with c()
+co2data_long <- select(co2data_long, -c("", "Indicator Name", "Indicator Code"))
+```
+
+```{r whats it look like?, results=FALSE}
+str(co2data_long)
+```
+**Transition: Fix the variable type**
+
+## Variable types 
+
+```{r determine type}
+typeof(co2data_long$year) # call variable by column name
+```
+
+Data types in R:
+character
+numeric (integer or double)
+logical
+complex
+
+Convert (or cast) a variable type
+```{r cast variables}
+co2data_long$year <- as.numeric(co2data_long$year)
+```
+
+```{r year as numeric now, eval=FALSE}
+head(co2data_long)
+```
+
+
+## A look at other useful `dplyr` functions
+https://dplyr.tidyverse.org/reference/index.html
+
+**Transition: Seems like lots of pre-processing but makes analysis a lot easier.**
+
+## Descriptive statistics 
+- explore data without assumptions before trying to answer specific questions
+- we wanted summary across all countries and years
+```{r descriptive, results='hide'}
+summary(co2data_long$emission)
+```
+
+**Transition: for more complex analysis, we need pipes**
+
+## tidyverse pipes 
+The pipeline operator (`%>%`) takes the result of the preceding function and uses it as input for the subsequent function. 
+
+- press `Ctrl+Shift+M` to type the pipe operator in RStudio
+- Analyze mean emission by year
+```{r yearly, results='hide'}
+co2data_long %>% 
+  group_by(year) %>%
+  summarise(mean(emission, na.rm = TRUE))
+```
+
+```{r yearly asigned, results='hide'}
+yearly_emission <- co2data_long %>% 
+  group_by(year) %>%
+  summarise(avgCO2 = mean(emission, na.rm = TRUE))
+yearly_emission
+```
+
+## Visualize data
+```{r visualize year, eval=FALSE}
+## Filter data within a ggplot call
+library(ggplot2)
+
+ggplot(yearly_emission) + 
+  geom_line(aes(x = year, y = avgCO2))
+```
+
+
+```{r visualize year with assignment, eval=FALSE}
+pl <- ggplot(yearly_emission) + 
+  geom_line(aes(x = year, y = avgCO2))
+```
+
+```{r visualize year with title, eval=FALSE}
+pl + 
+  labs(x = "Year", 
+       y = "Average CO2 emission (metric tons per capita)",
+       title = "Average CO2 emission over time") +
+  theme_minimal()
+```
+
+## Let's recapitulate {.build}
+
+Break a project into smaller tasks!
+
+1)	Load data 
+2)	Organize data
+3)	Understand your data
+    -	Descriptive statistics (data entry errors?)
+    -	Visualize
+    -	Analyze
+4)	Create report
+
+## Get help 
+- Check the <a href="https://ggplot2.tidyverse.org/reference/">documentation</a>
+- Use <a href="https://rstudio.com/resources/cheatsheets/">RStudio CheatSheets</a>
+- Search the internet &#8702; <a href="https://stackoverflow.com/questions/tagged/r">Stackoverflow</a>\
+- If you know the function name: type ?[Function] in the console
+- Use the Help in RStudio\
+
